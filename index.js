@@ -51,7 +51,7 @@ function clearMessages(msg, args) {
     }
     const toDelete = Math.min(num, maxDeletes);
     const { channel } = msg;
-    channel.bulkDelete(toDelete)
+    channel.bulkDelete(toDelete + 1)
         .then(messages => {
             msg.reply(`Deleted ${messages.size} messages`);
         }).catch(reportError(msg));
