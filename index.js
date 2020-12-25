@@ -93,12 +93,16 @@ function handleCommands(msg, args) {
 
 client.on('message', msg => {
     const { content, mentions, member: author } = msg;
-    if (content.startsWith('-fag')) {
+    if (content.startsWith(process.env.BOT_TRIGGER)) {
         const [, ...args] = content.split(' ');
         handleCommands(msg, args);
     }
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+app.get('/', (req, res) => {
+    res.json('I am a discord bot :D');
+});
 
 app.listen(process.env.PORT);
