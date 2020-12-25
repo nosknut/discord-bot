@@ -2,6 +2,8 @@ const Discord = require('discord.js');
 
 require('dotenv').config();
 
+const app = require('express')();
+
 const client = new Discord.Client();
 
 client.once('ready', () => {
@@ -98,3 +100,5 @@ client.on('message', msg => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+app.listen(process.env.PORT);
