@@ -1,13 +1,15 @@
 const Discord = require('discord.js');
-
 require('dotenv').config();
+const express = require('express');
 
-const app = require('express')();
+const app = express();
+const expressWs = require('express-ws')(app);
+app.use(express.text());
 
 const client = new Discord.Client();
 
 client.once('ready', () => {
-    console.log('Ready!');
+    console.log('Discord bot connected!');
 });
 
 const Commands = {
@@ -15,6 +17,7 @@ const Commands = {
     NICK: 'nick',
     CLEAR: 'clear',
     BOT_STATUS: 'botstatus',
+    SETUP_WEBSOCKET: 'setupwebsocket',
 };
 
 function getLast(list) {
@@ -72,6 +75,14 @@ function setBotStatus(msg, args = []) {
     }).catch(reportError(msg));
 }
 
+function setupWebsocket(msg, args) {
+    msg.guild.channels.create('websocket')
+        .then(channel => {
+            channel.send(`Id: ${channel.id}`)
+            msg.reply(`Websocket channel created. POST to socketEndpoint/${channel.id} with the message to be broadcasted and attach a websocket to listen`);
+        }).catch(reportError(msg));
+}
+
 function handleCommands(msg, args) {
     switch (args[0]) {
         case Commands.HELP:
@@ -86,6 +97,9 @@ function handleCommands(msg, args) {
         case Commands.BOT_STATUS:
             setBotStatus(msg, args);
             break;
+        case Commands.SETUP_WEBSOCKET:
+            setupWebsocket(msg, args);
+            break;
         default:
             break;
     }
@@ -97,6 +111,13 @@ client.on('message', msg => {
         const [, ...args] = content.split(' ');
         handleCommands(msg, args);
     }
+    if (msg.channel.name === 'websocket' && msg.member.user.id !== client.user.id) {
+        expressWs.getWss().clients.forEach(client => {
+            if (client.channelId === msg.channel.id) {
+                client.send(content);
+            }
+        });
+    }
 });
 
 client.login(process.env.DISCORD_TOKEN);
@@ -105,4 +126,51 @@ app.get('/', (req, res) => {
     res.json('I am a discord bot :D');
 });
 
-app.listen(process.env.PORT);
+
+app.post('/channels/:channelId', (req, res) => {
+    client.channels.fetch(req.params.channelId)
+        .then(channel => {
+            if (channel.name !== 'websocket') {
+                res.status(400).send('Can only POST to channels named "websocket"');
+            }
+            channel.send(req.body)
+                .then(() => {
+                    res.status(200).end();
+                })
+                .catch(e => {
+                    res.status(500).send(e);
+                })
+        })
+        .catch(e => {
+            //Todo: make this mor3e secure with an inclusive pattern
+            res.json(e);
+        });
+});
+
+app.ws('/socket/:channelId', (ws, req) => {
+    console.log('got connection!');
+    console.log(req.params.channelId);
+    ws.channelId = req.params.channelId;
+
+    client.channels.fetch(req.params.channelId)
+        .then(channel => {
+            if (channel.name !== 'websocket') {
+                ws.send('Can only POST to channels named "websocket"');
+                return;
+            }
+            ws.on('message', (message) => {
+                channel.send(message).catch(e => {
+                    ws.send(e);
+                })
+            });
+            ws.send('Hi there, I am a WebSocket server listening on ' + req.params.channelId);
+        })
+        .catch(e => {
+            //Todo: make this more secure with an inclusive pattern
+            res.json(e);
+        });
+});
+
+app.listen(process.env.PORT, () => {
+    console.log(`Server is running on port ${process.env.PORT}`);
+});
