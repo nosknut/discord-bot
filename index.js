@@ -31,6 +31,10 @@ function reportError(msg) {
     }
 }
 
+function wrapMessage(message){
+    return `ws: ${message}`;
+}
+
 function rename(msg, args) {
     const { content, mentions, member: author } = msg;
     const { members } = mentions;
@@ -137,7 +141,7 @@ app.post('/channels/:channelId', (req, res) => {
             if (channel.name !== 'websocket') {
                 res.status(400).send('Can only POST to channels named "websocket"');
             }
-            channel.send(req.body)
+            channel.send(wrapMessage(req.body))
                 .then(() => {
                     res.status(200).end();
                 })
@@ -163,7 +167,7 @@ app.ws('/socket/:channelId', (ws, req) => {
                 return;
             }
             ws.on('message', (message) => {
-                channel.send(message).catch(e => {
+                channel.send(wrapMessage(message)).catch(e => {
                     ws.send(e);
                 })
             });
