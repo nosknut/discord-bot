@@ -108,6 +108,10 @@ function handleCommands(msg, args) {
 client.on('message', msg => {
     const { content, mentions, member: author } = msg;
     if (content.startsWith(process.env.BOT_TRIGGER)) {
+        if (author.user.id === client.user.id) {
+            msg.reply('Bot cannot trigger itself ...');
+            return;
+        }
         const [, ...args] = content.split(' ');
         handleCommands(msg, args);
     }
