@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const Discord = require('discord.js');
 require('dotenv').config();
 const express = require('express');
@@ -16,6 +17,7 @@ const Commands = {
     HELP: 'help',
     NICK: 'nick',
     CLEAR: 'clear',
+    DANCE: 'dance',
     BOT_STATUS: 'botstatus',
     SETUP_WEBSOCKET: 'setupwebsocket',
 };
@@ -31,7 +33,20 @@ function reportError(msg) {
     }
 }
 
-function wrapMessage(message){
+function dance(msg) {
+    fetch(`http://api.giphy.com/v1/gifs/search?api_key=${process.env.GIPHY_API_KEY}&limit=1&q=dance`)
+        .then(res => res && res.json())
+        .then((json) => {
+            const first = json.data[0];
+            if (first && first.url) {
+                msg.channel.send(first.url).catch(reportError(msg));
+            } else {
+                msg.reply('Something went wrong')
+            }
+        }).catch(reportError(msg));
+}
+
+function wrapMessage(message) {
     return `ws: ${message}`;
 }
 
@@ -103,6 +118,9 @@ function handleCommands(msg, args) {
             break;
         case Commands.SETUP_WEBSOCKET:
             setupWebsocket(msg, args);
+            break;
+        case Commands.DANCE:
+            dance(msg);
             break;
         default:
             break;
