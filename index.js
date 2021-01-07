@@ -58,7 +58,7 @@ function rename(msg, args) {
         return;
     }
     const member = members.values().next().value;
-    const newNickname = args[args.length - 1];
+    const newNickname = args.slice(3).join(' ');
     const reasonMessage =
         `${author.user.username} renamed ${member.user.username}`;
     member.setNickname(newNickname, reasonMessage);
